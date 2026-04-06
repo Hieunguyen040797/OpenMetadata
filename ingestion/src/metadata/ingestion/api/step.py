@@ -23,7 +23,7 @@ from metadata.ingestion.api.closeable import Closeable
 from metadata.ingestion.api.models import Either, Entity, StackTraceError
 from metadata.ingestion.api.status import Status
 from metadata.ingestion.ometa.ometa_api import OpenMetadata
-from metadata.utils.logger import ingestion_logger
+from metadata.utils.logger import StatusWarningHandler, ingestion_logger
 from metadata.utils.operation_metrics import OperationMetricsState
 from metadata.utils.progress_tracker import ProgressTrackerState
 
@@ -45,6 +45,8 @@ class Step(ABC, Closeable):
 
     def __init__(self):
         self.status = Status()
+        self._warning_handler = StatusWarningHandler(self.status)
+        ingestion_logger().addHandler(self._warning_handler)
 
     @classmethod
     @abstractmethod
