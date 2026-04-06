@@ -39,7 +39,6 @@ from metadata.ingestion.connections.test_connections import (
 )
 from metadata.ingestion.ometa.ometa_api import OpenMetadata
 from metadata.utils.constants import THREE_MIN
-from metadata.utils.ssl_manager import SSLManager
 
 
 def get_connection(
@@ -67,25 +66,17 @@ def _get_kafka_connection(broker: KafkaBrokerConfig) -> KafkaConsumer:
             "auto.offset.reset": broker.consumerOffsets.value,
             "security.protocol": broker.securityProtocol.value,
         }
-        ssl_manager = None
         if broker.securityProtocol.value in (
             KafkaSecProtocol.SSL.value,
             KafkaSecProtocol.SASL_SSL.value,
         ):
-            # sslConfig is optional — a None value means the broker uses system CAs
-            # or server-only TLS. Only set ssl.*.location for fields that are present.
-            if broker.sslConfig is not None:
-                ssl_manager = SSLManager(
-                    ca=broker.sslConfig.root.caCertificate,
-                    cert=broker.sslConfig.root.sslCertificate,
-                    key=broker.sslConfig.root.sslKey,
-                )
-                if ssl_manager.ca_file_path:
-                    config["ssl.ca.location"] = ssl_manager.ca_file_path
-                if ssl_manager.cert_file_path:
-                    config["ssl.certificate.location"] = ssl_manager.cert_file_path
-                if ssl_manager.key_file_path:
-                    config["ssl.key.location"] = ssl_manager.key_file_path
+            config.update(
+                {
+                    "ssl.ca.location": broker.sslConfig.root.caCertificate,
+                    "ssl.certificate.location": broker.sslConfig.root.sslCertificate,
+                    "ssl.key.location": broker.sslConfig.root.sslKey,
+                }
+            )
 
         if broker.securityProtocol.value in (
             KafkaSecProtocol.SASL_PLAINTEXT.value,
@@ -101,12 +92,11 @@ def _get_kafka_connection(broker: KafkaBrokerConfig) -> KafkaConsumer:
 
         kafka_consumer = KafkaConsumer(config)
         kafka_consumer.subscribe([broker.topicName])
-        # Attach ssl_manager so _poll_kafka can clean up temp cert files on close.
-        kafka_consumer._ssl_manager = ssl_manager
+
         return kafka_consumer
     except Exception as exc:
         msg = f"Unknown error connecting with Kafka broker: {exc}."
-        raise SourceConnectionException(msg) from exc
+        raise SourceConnectionException(msg)
 
 
 def _get_kinesis_connection(broker: KinesisBrokerConfig):
