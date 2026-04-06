@@ -716,7 +716,7 @@ public class OpenSearchSourceBuilderFactory
       int maxSize = searchSettings.getGlobalSettings().getMaxAggregateSize();
 
       if (!nullOrEmpty(agg.getField())) {
-        String field = SearchSourceBuilderFactory.remapAggregationField(agg.getField());
+        String field = SearchSourceBuilderFactory.resolveFieldForSortOrAggregation(agg.getField());
         termsAgg = OpenSearchAggregationBuilder.termsAggregation(field, maxSize);
       } else if (!nullOrEmpty(agg.getScript())) {
         termsAgg =
@@ -737,7 +737,8 @@ public class OpenSearchSourceBuilderFactory
               int maxSize = searchSettings.getGlobalSettings().getMaxAggregateSize();
 
               if (!nullOrEmpty(agg.getField())) {
-                String field = SearchSourceBuilderFactory.remapAggregationField(agg.getField());
+                String field =
+                    SearchSourceBuilderFactory.resolveFieldForSortOrAggregation(agg.getField());
                 termsAgg = OpenSearchAggregationBuilder.termsAggregation(field, maxSize);
               } else if (!nullOrEmpty(agg.getScript())) {
                 termsAgg =

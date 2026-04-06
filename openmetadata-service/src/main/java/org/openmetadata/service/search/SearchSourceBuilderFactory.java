@@ -237,4 +237,39 @@ public interface SearchSourceBuilderFactory<S, Q, H, F> {
   static String remapAggregationField(String field) {
     return AGGREGATION_FIELD_REMAPS.getOrDefault(field, field);
   }
+
+  /**
+   * Root-level text fields that have a {@code .keyword} sub-field in all index mappings. When these
+   * bare field names are used for sorting or terms aggregation, they must be resolved to their
+   * {@code .keyword} sub-field.
+   */
+  Set<String> TEXT_FIELDS_WITH_KEYWORD = Set.of("name", "displayName");
+
+  /**
+   * Resolve a field name for use in sorting or aggregation contexts.
+   *
+   * <ul>
+   *   <li>Applies owner-field remapping (e.g. {@code owners.displayName.keyword} &rarr; {@code
+   *       ownerDisplayName})
+   *   <li>Appends {@code .keyword} to known text fields that require it
+   *   <li>Passes through special fields ({@code _score}, {@code _key}, {@code _count}), fields
+   *       that already have a sub-field suffix, and numeric/date fields unchanged
+   * </ul>
+   */
+  static String resolveFieldForSortOrAggregation(String field) {
+    if (field == null || field.isEmpty()) {
+      return field;
+    }
+    String remapped = AGGREGATION_FIELD_REMAPS.getOrDefault(field, field);
+    if (!remapped.equals(field)) {
+      return remapped;
+    }
+    if (field.startsWith("_") || field.contains(".")) {
+      return field;
+    }
+    if (TEXT_FIELDS_WITH_KEYWORD.contains(field)) {
+      return field + ".keyword";
+    }
+    return field;
+  }
 }
