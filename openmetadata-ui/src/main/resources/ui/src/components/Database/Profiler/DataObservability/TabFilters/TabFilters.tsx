@@ -32,6 +32,7 @@ import {
   DEFAULT_RANGE_DATA,
   DEFAULT_SELECTED_RANGE,
 } from '../../../../../constants/profiler.constant';
+import { usePermissionProvider } from '../../../../../context/PermissionProvider/PermissionProvider';
 import { useTourProvider } from '../../../../../context/TourProvider/TourProvider';
 import { EntityTabs, EntityType } from '../../../../../enums/entity.enum';
 import { ProfilerDashboardType } from '../../../../../enums/table.enum';
@@ -51,7 +52,6 @@ import { ProfilerTabPath } from '../../ProfilerDashboard/profilerDashboard.inter
 import ColumnPickerMenu from '../../TableProfiler/ColumnPickerMenu';
 import profilerClassBase from '../../TableProfiler/ProfilerClassBase';
 import { useTableProfiler } from '../../TableProfiler/TableProfilerProvider';
-import { usePermissionProvider } from '../../../../../context/PermissionProvider/PermissionProvider';
 
 const TabFilters = () => {
   const { isTourOpen } = useTourProvider();
@@ -189,7 +189,8 @@ const TabFilters = () => {
       alignItems="center"
       direction="row"
       justifyContent="flex-end"
-      spacing={5}>
+      spacing={5}
+    >
       {!isEmpty(activeColumnFqn) && (
         <Box alignItems="center" display="flex" gap={2}>
           <Typography
@@ -197,7 +198,8 @@ const TabFilters = () => {
               color: theme.palette.grey[900],
               fontSize: theme.typography.pxToRem(13),
               fontWeight: 500,
-            }}>
+            }}
+          >
             {`${t('label.column')}:`}
           </Typography>
           <ColumnPickerMenu
@@ -220,7 +222,8 @@ const TabFilters = () => {
               color: theme.palette.grey[900],
               fontSize: theme.typography.pxToRem(13),
               fontWeight: 500,
-            }}>
+            }}
+          >
             {`${t('label.date')}:`}
           </Typography>
           <MuiDatePickerMenu
@@ -241,7 +244,8 @@ const TabFilters = () => {
                 endIcon={<KeyboardArrowDown />}
                 sx={{ height: '32px' }}
                 variant="contained"
-                onClick={handleMenuClick}>
+                onClick={handleMenuClick}
+              >
                 {t('label.add')}
               </Button>
               <Menu
@@ -260,18 +264,21 @@ const TabFilters = () => {
                   vertical: 'top',
                   horizontal: 'right',
                 }}
-                onClose={handleMenuClose}>
+                onClose={handleMenuClose}
+              >
                 {createTestCasePermission && (
                   <MenuItem onClick={handleTestCaseClick}>
                     <TabsLabel id="test-case" name={t('label.test-case')} />
                   </MenuItem>
                 )}
-                <MenuItem onClick={handleCustomMetricClick}>
-                  <TabsLabel
-                    id="custom-metric"
-                    name={t('label.custom-metric')}
-                  />
-                </MenuItem>
+                {editDataProfile && (
+                  <MenuItem onClick={handleCustomMetricClick}>
+                    <TabsLabel
+                      id="custom-metric"
+                      name={t('label.custom-metric')}
+                    />
+                  </MenuItem>
+                )}
               </Menu>
             </>
           </LimitWrapper>
@@ -284,7 +291,8 @@ const TabFilters = () => {
                 height: '32px',
               }}
               variant="outlined"
-              onClick={onSettingButtonClick}>
+              onClick={onSettingButtonClick}
+            >
               <SettingIcon />
             </Button>
           </Tooltip>
