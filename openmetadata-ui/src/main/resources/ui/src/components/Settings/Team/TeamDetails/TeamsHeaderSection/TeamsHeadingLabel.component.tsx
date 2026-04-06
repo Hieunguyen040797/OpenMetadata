@@ -200,7 +200,9 @@ const TeamsHeadingLabel = ({
 
   return (
     <div
-      className={`d-flex items-center tw:gap-1${isHeadingEditing ? '' : ' tw:max-w-1/3'}`}>
+      className={`d-flex items-center tw:gap-1${
+        isHeadingEditing ? '' : ' tw:max-w-1/3'
+      }`}>
       {teamHeadingRender}
     </div>
   );
