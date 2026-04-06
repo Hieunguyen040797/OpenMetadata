@@ -232,11 +232,13 @@ public interface SearchSourceBuilderFactory<S, Q, H, F> {
   Map<String, String> AGGREGATION_FIELD_REMAPS =
       Map.of(
           "owners.displayName.keyword", "ownerDisplayName",
-          "owners.name.keyword", "ownerName");
+          "owners.displayName", "ownerDisplayName",
+          "owners.name.keyword", "ownerName",
+          "owners.name", "ownerName");
 
   /**
-   * Text fields (by leaf name) that carry a {@code .keyword} sub-field in all index mappings.
-   * Applies to both root-level fields ({@code name}) and nested paths ({@code columns.name}).
+   * Root-level text fields that carry a {@code .keyword} sub-field in all index mappings. Only
+   * exact root-level names match; dotted paths (e.g. {@code columns.name}) are not resolved here.
    */
   Set<String> TEXT_FIELDS_WITH_KEYWORD = Set.of("name", "displayName");
 
@@ -254,9 +256,9 @@ public interface SearchSourceBuilderFactory<S, Q, H, F> {
    *       ownerDisplayName})
    *   <li>Passes through ES/OS internal fields that start with {@code _}
    *   <li>Passes through fields already ending with {@code .keyword}
-   *   <li>Appends {@code .keyword} to any field whose leaf segment matches {@code
-   *       TEXT_FIELDS_WITH_KEYWORD} — works for both root ({@code name}) and nested ({@code
-   *       columns.name}) paths
+   *   <li>Appends {@code .keyword} to root-level fields that exactly match {@code
+   *       TEXT_FIELDS_WITH_KEYWORD} ({@code name}, {@code displayName}); dotted paths pass through
+   *       unchanged
    *   <li>Passes through all other fields (numeric, date, keyword-typed) unchanged
    * </ul>
    */
@@ -274,8 +276,7 @@ public interface SearchSourceBuilderFactory<S, Q, H, F> {
     if (field.endsWith(".keyword")) {
       return field;
     }
-    String leaf = field.contains(".") ? field.substring(field.lastIndexOf('.') + 1) : field;
-    if (TEXT_FIELDS_WITH_KEYWORD.contains(leaf)) {
+    if (TEXT_FIELDS_WITH_KEYWORD.contains(field)) {
       return field + ".keyword";
     }
     return field;
