@@ -11,7 +11,15 @@
  *  limitations under the License.
  */
 
-import { Button, Modal, Skeleton, Space, Switch, Typography } from 'antd';
+import {
+  Button,
+  Modal,
+  Skeleton,
+  Space,
+  Switch,
+  Tooltip,
+  Typography,
+} from 'antd';
 import { ColumnsType, TableProps } from 'antd/lib/table';
 import { ExpandableConfig } from 'antd/lib/table/interface';
 import { AxiosError } from 'axios';
@@ -82,18 +90,29 @@ const TeamHierarchy: FC<TeamHierarchyProps> = ({
       {
         title: t('label.team-plural'),
         dataIndex: 'teams',
-        className: 'whitespace-nowrap',
+        className: 'teams-hierarchy-name-column',
         key: 'teams',
-        render: (_, record) => (
-          <Link
-            className="link-hover"
-            data-testid={`team-name-${record.name}`}
-            to={getTeamsWithFqnPath(record.fullyQualifiedName || record.name)}>
-            {stringToHTML(
-              highlightSearchText(getEntityName(record), searchTerm)
-            )}
-          </Link>
-        ),
+        width: '32%',
+        render: (_, record) => {
+          const displayName = getEntityName(record);
+
+          return (
+            <span className="teams-hierarchy-team-name-cell">
+              <Tooltip placement="topLeft" title={displayName}>
+                <span className="teams-hierarchy-team-name-tooltip-trigger">
+                  <Link
+                    className="link-hover teams-hierarchy-team-name-link"
+                    data-testid={`team-name-${record.name}`}
+                    to={getTeamsWithFqnPath(
+                      record.fullyQualifiedName || record.name
+                    )}>
+                    {stringToHTML(highlightSearchText(displayName, searchTerm))}
+                  </Link>
+                </span>
+              </Tooltip>
+            </span>
+          );
+        },
       },
       {
         title: t('label.type'),
@@ -152,7 +171,7 @@ const TeamHierarchy: FC<TeamHierarchyProps> = ({
       },
       ...descriptionTableObject<Team>({ width: 300 }),
     ];
-  }, [data, isFetchingAllTeamAdvancedDetails, onTeamExpand, teamAssetCounts]);
+  }, [isFetchingAllTeamAdvancedDetails, searchTerm, t, teamAssetCounts]);
 
   const handleTableHover = useCallback(
     (value: boolean) => setIsTableHovered(value),

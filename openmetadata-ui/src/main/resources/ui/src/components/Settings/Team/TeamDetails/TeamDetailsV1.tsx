@@ -636,7 +636,13 @@ const TeamDetailsV1 = ({
       );
     }
 
-    return currentTeam.childrenCount === 0 && !searchTerm ? (
+    const showEmptyTeamPlaceholder =
+      isEmpty(searchTerm) &&
+      isEmpty(childTeamList) &&
+      (currentTeam.childrenCount ?? 0) === 0 &&
+      !isTeamBasicDataLoading;
+
+    return showEmptyTeamPlaceholder ? (
       <ErrorPlaceHolder
         className="border-none"
         icon={<AddPlaceHolderIcon className="h-32 w-32" />}
@@ -696,6 +702,7 @@ const TeamDetailsV1 = ({
     entityPermissions.Create,
     isFetchingAllTeamAdvancedDetails,
     isSearchLoading,
+    isTeamBasicDataLoading,
     onTeamExpand,
     handleAddTeamButtonClick,
     handleTeamSearch,
