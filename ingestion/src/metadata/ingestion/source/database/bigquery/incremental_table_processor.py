@@ -15,7 +15,7 @@ Uses Cloud Logging API (entries.list) to detect table changes since last run.
 Optimized around the hard 60 requests/min quota per project:
 - Batches datasets into groups using the indexed field resource.labels.dataset_id
 - Bounded timestamp window [start_date, end_date) for deterministic results
-- Retries with exponential backoff on ResourceExhausted (429)
+- Retries with linear backoff on ResourceExhausted (429)
 
 Memory-optimized:
 - Processes entries page-by-page, releasing each page before fetching the next
@@ -109,7 +109,7 @@ class BigQueryIncrementalTableProcessor:
 
         Iterates entries one-by-one from the Cloud Logging generator and
         feeds each to _process_entry. On ResourceExhausted (429), retries
-        up to MAX_RETRIES times with exponential backoff. On retry,
+        up to MAX_RETRIES times with linear backoff. On retry,
         already-processed entries are deduplicated by BigQueryTableMap.update().
         """
         resource_names = [f"projects/{project}"]

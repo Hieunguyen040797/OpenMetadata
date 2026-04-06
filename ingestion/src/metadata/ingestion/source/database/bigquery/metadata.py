@@ -707,23 +707,22 @@ class BigquerySource(LifeCycleQueryMixin, CommonDbSourceService, MultiDBSource):
 
     def _get_filtered_datasets(self, project_id: str) -> List[str]:
         """Return dataset IDs that pass the schema filter pattern."""
-        if self.service_connection.__dict__.get("databaseSchema"):
-            return [self.service_connection.databaseSchema]
-        datasets = self.client.list_datasets(project_id)
         return [
-            ds.dataset_id
-            for ds in datasets
+            schema_name
+            for schema_name in self.get_raw_database_schema_names()
             if not filter_by_schema(
                 self.source_config.schemaFilterPattern,
-                fqn.build(
-                    self.metadata,
-                    entity_type=DatabaseSchema,
-                    service_name=self.context.get().database_service,
-                    database_name=project_id,
-                    schema_name=ds.dataset_id,
-                )
-                if self.source_config.useFqnForFiltering
-                else ds.dataset_id,
+                (
+                    fqn.build(
+                        self.metadata,
+                        entity_type=DatabaseSchema,
+                        service_name=self.context.get().database_service,
+                        database_name=project_id,
+                        schema_name=schema_name,
+                    )
+                    if self.source_config.useFqnForFiltering
+                    else schema_name
+                ),
             )
         ]
 
