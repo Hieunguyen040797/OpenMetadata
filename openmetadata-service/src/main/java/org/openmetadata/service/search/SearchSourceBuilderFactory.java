@@ -225,25 +225,26 @@ public interface SearchSourceBuilderFactory<S, Q, H, F> {
   }
 
   /**
-   * Remap nested owner field paths to their flat top-level equivalents.
-   * The flat fields {@code ownerDisplayName} and {@code ownerName} are
-   * denormalized copies maintained in every search index.
+   * Remap nested owner field paths to their flat top-level equivalents. The flat fields {@code
+   * ownerDisplayName} and {@code ownerName} are denormalized copies maintained in every search
+   * index.
    */
   Map<String, String> AGGREGATION_FIELD_REMAPS =
       Map.of(
           "owners.displayName.keyword", "ownerDisplayName",
           "owners.name.keyword", "ownerName");
 
-  static String remapAggregationField(String field) {
-    return AGGREGATION_FIELD_REMAPS.getOrDefault(field, field);
-  }
-
   /**
-   * Root-level text fields that have a {@code .keyword} sub-field in all index mappings. When these
-   * bare field names are used for sorting or terms aggregation, they must be resolved to their
-   * {@code .keyword} sub-field.
+   * Text fields (by leaf name) that carry a {@code .keyword} sub-field in all index mappings.
+   * Applies to both root-level fields ({@code name}) and nested paths ({@code columns.name}).
    */
   Set<String> TEXT_FIELDS_WITH_KEYWORD = Set.of("name", "displayName");
+
+  /**
+   * Flat keyword fields produced by owner-field remapping. These do not carry a {@code .keyword}
+   * suffix but must be treated as keyword sort fields for correct {@code unmappedType} resolution.
+   */
+  Set<String> KEYWORD_SORT_FIELDS = Set.of("ownerDisplayName", "ownerName");
 
   /**
    * Resolve a field name for use in sorting or aggregation contexts.
@@ -251,9 +252,12 @@ public interface SearchSourceBuilderFactory<S, Q, H, F> {
    * <ul>
    *   <li>Applies owner-field remapping (e.g. {@code owners.displayName.keyword} &rarr; {@code
    *       ownerDisplayName})
-   *   <li>Appends {@code .keyword} to known text fields that require it
-   *   <li>Passes through special fields ({@code _score}, {@code _key}, {@code _count}), fields
-   *       that already have a sub-field suffix, and numeric/date fields unchanged
+   *   <li>Passes through ES/OS internal fields that start with {@code _}
+   *   <li>Passes through fields already ending with {@code .keyword}
+   *   <li>Appends {@code .keyword} to any field whose leaf segment matches {@code
+   *       TEXT_FIELDS_WITH_KEYWORD} — works for both root ({@code name}) and nested ({@code
+   *       columns.name}) paths
+   *   <li>Passes through all other fields (numeric, date, keyword-typed) unchanged
    * </ul>
    */
   static String resolveFieldForSortOrAggregation(String field) {
@@ -264,10 +268,14 @@ public interface SearchSourceBuilderFactory<S, Q, H, F> {
     if (!remapped.equals(field)) {
       return remapped;
     }
-    if (field.startsWith("_") || field.contains(".")) {
+    if (field.startsWith("_")) {
       return field;
     }
-    if (TEXT_FIELDS_WITH_KEYWORD.contains(field)) {
+    if (field.endsWith(".keyword")) {
+      return field;
+    }
+    String leaf = field.contains(".") ? field.substring(field.lastIndexOf('.') + 1) : field;
+    if (TEXT_FIELDS_WITH_KEYWORD.contains(leaf)) {
       return field + ".keyword";
     }
     return field;

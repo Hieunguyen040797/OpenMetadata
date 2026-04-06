@@ -47,7 +47,17 @@ class SearchFieldResolutionTest {
   }
 
   @Test
-  void preservesNestedAndDottedPaths() {
+  void convertsNestedTextFieldsToKeyword() {
+    assertEquals(
+        "columns.name.keyword",
+        SearchSourceBuilderFactory.resolveFieldForSortOrAggregation("columns.name"));
+    assertEquals(
+        "parent.displayName.keyword",
+        SearchSourceBuilderFactory.resolveFieldForSortOrAggregation("parent.displayName"));
+  }
+
+  @Test
+  void preservesNestedPathsAlreadyQualified() {
     assertEquals(
         "columns.name.keyword",
         SearchSourceBuilderFactory.resolveFieldForSortOrAggregation("columns.name.keyword"));
@@ -56,6 +66,15 @@ class SearchFieldResolutionTest {
     assertEquals(
         "domains.fullyQualifiedName",
         SearchSourceBuilderFactory.resolveFieldForSortOrAggregation("domains.fullyQualifiedName"));
+  }
+
+  @Test
+  void preservesFlatKeywordSortFields() {
+    assertEquals(
+        "ownerDisplayName",
+        SearchSourceBuilderFactory.resolveFieldForSortOrAggregation("ownerDisplayName"));
+    assertEquals(
+        "ownerName", SearchSourceBuilderFactory.resolveFieldForSortOrAggregation("ownerName"));
   }
 
   @Test

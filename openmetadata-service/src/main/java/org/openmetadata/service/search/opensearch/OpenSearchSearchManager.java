@@ -1231,8 +1231,10 @@ public class OpenSearchSearchManager implements SearchManagementClient {
       SortOrder sortOrder = SortOrder.valueOf(sortTypeCapitalized);
 
       if (!sortField.equalsIgnoreCase("_score")) {
-        String unmappedType = sortField.endsWith(".keyword") ? "keyword" : "integer";
-        requestBuilder.sort(sortField, sortOrder, unmappedType);
+        boolean isKeywordField =
+            sortField.endsWith(".keyword")
+                || SearchSourceBuilderFactory.KEYWORD_SORT_FIELDS.contains(sortField);
+        requestBuilder.sort(sortField, sortOrder, isKeywordField ? "keyword" : "integer");
       } else {
         requestBuilder.sort(sortField, sortOrder, null);
       }
