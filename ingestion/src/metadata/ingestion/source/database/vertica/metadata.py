@@ -64,7 +64,7 @@ ischema_names.update(
         # Long string
         "LONG VARCHAR": sqltypes.Text,
         # Temporal
-        "INTERVAL": sqltypes.Interval,
+        "INTERVAL": create_sqlalchemy_type("INTERVAL"),
         # Complex / semi-structured types (Vertica v11+)
         "ARRAY": create_sqlalchemy_type("ARRAY"),
         "NATIVE ARRAY": create_sqlalchemy_type("ARRAY"),
