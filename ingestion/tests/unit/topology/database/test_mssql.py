@@ -45,12 +45,12 @@ from metadata.generated.schema.type.entityReference import EntityReference
 from metadata.generated.schema.type.filterPattern import FilterPattern
 from metadata.ingestion.ometa.utils import model_str
 from metadata.ingestion.source.database.mssql.metadata import MssqlSource
-from metadata.utils.sqa_utils import update_mssql_ischema_names
 from metadata.ingestion.source.database.mssql.queries import (
     MSSQL_GET_CURRENT_DATABASE,
     MSSQL_GET_DATABASE,
     MSSQL_TEST_GET_QUERIES,
 )
+from metadata.utils.sqa_utils import update_mssql_ischema_names
 
 mock_mssql_config = {
     "source": {
@@ -382,7 +382,7 @@ class TestUpdateMssqlIschemaNames:
         target = {"existing_key": sentinel}
         update_mssql_ischema_names(target)
         assert target["existing_key"] is sentinel
-        
+
     @patch(
         "metadata.ingestion.source.database.mssql.connection.test_connection_db_common"
     )
