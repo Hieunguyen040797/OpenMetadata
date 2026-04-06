@@ -15,7 +15,8 @@ import {
   CloseOutlined,
   ExclamationCircleFilled,
 } from '@ant-design/icons';
-import { Button, Input, Space, Tooltip, Typography } from 'antd';
+import { Typography } from '@openmetadata/ui-core-components';
+import { Button, Input, Space, Tooltip } from 'antd';
 import { isEmpty } from 'lodash';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -125,21 +126,26 @@ const TeamsHeadingLabel = ({
         <>
           <>
             {heading ? (
-              <Typography.Title
-                className="m-b-0 w-max-200"
-                data-testid="team-heading"
-                ellipsis={{ tooltip: true }}
-                level={5}>
-                {heading}
-              </Typography.Title>
+              <Tooltip title={heading}>
+                <div className="tw:min-w-0 tw:overflow-hidden">
+                  <Typography
+                    as="h5"
+                    className="m-b-0 tw:truncate"
+                    data-testid="team-heading"
+                    size="text-md"
+                    weight="semibold">
+                    {heading}
+                  </Typography>
+                </div>
+              </Tooltip>
             ) : (
-              <Typography.Text
+              <Typography
                 className="m-b-0 text-grey-muted text-sm"
                 data-testid="team-heading">
                 {t('label.no-entity', {
                   entity: t('label.display-name'),
                 })}
-              </Typography.Text>
+              </Typography>
             )}
             {(hasAccess || isCurrentTeamOwner) && !currentTeam.deleted && (
               <Tooltip
@@ -192,7 +198,12 @@ const TeamsHeadingLabel = ({
     }
   }, [currentTeam]);
 
-  return <Space size={4}>{teamHeadingRender}</Space>;
+  return (
+    <div
+      className={`d-flex items-center tw:gap-1${isHeadingEditing ? '' : ' tw:max-w-1/3'}`}>
+      {teamHeadingRender}
+    </div>
+  );
 };
 
 export default TeamsHeadingLabel;
