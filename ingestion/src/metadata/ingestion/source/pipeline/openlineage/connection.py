@@ -39,6 +39,7 @@ from metadata.ingestion.connections.test_connections import (
 )
 from metadata.ingestion.ometa.ometa_api import OpenMetadata
 from metadata.utils.constants import THREE_MIN
+from metadata.utils.ssl_manager import SSLManager
 
 
 def get_connection(
@@ -70,11 +71,16 @@ def _get_kafka_connection(broker: KafkaBrokerConfig) -> KafkaConsumer:
             KafkaSecProtocol.SSL.value,
             KafkaSecProtocol.SASL_SSL.value,
         ):
+            ssl_manager = SSLManager(
+                ca=broker.sslConfig.root.caCertificate,
+                cert=broker.sslConfig.root.sslCertificate,
+                key=broker.sslConfig.root.sslKey,
+            )
             config.update(
                 {
-                    "ssl.ca.location": broker.sslConfig.root.caCertificate,
-                    "ssl.certificate.location": broker.sslConfig.root.sslCertificate,
-                    "ssl.key.location": broker.sslConfig.root.sslKey,
+                    "ssl.ca.location": ssl_manager.ca_file_path,
+                    "ssl.certificate.location": ssl_manager.cert_file_path,
+                    "ssl.key.location": ssl_manager.key_file_path,
                 }
             )
         if broker.securityProtocol.value in (

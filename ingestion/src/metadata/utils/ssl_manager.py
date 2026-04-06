@@ -185,6 +185,14 @@ class SSLManager:
                 raise ValueError(
                     "CA certificate is required for SSL mode verify-ca or verify-full"
                 )
+        # sslcert and sslkey enable mutual TLS (client certificate authentication).
+        # Previously these fields were extracted by check_ssl_and_init but never
+        # forwarded to psycopg2, causing FATAL: connection requires a valid client
+        # certificate when pg_hba.conf uses cert auth.
+        if self.cert_file_path:
+            connection.connectionArguments.root["sslcert"] = self.cert_file_path
+        if self.key_file_path:
+            connection.connectionArguments.root["sslkey"] = self.key_file_path
         return connection
 
     @setup_ssl.register(SalesforceConnection)
@@ -307,9 +315,15 @@ class SSLManager:
                 connection.connectionArguments.root["TrustServerCertificate"] = "yes"
 
         elif connection.scheme.value == "mssql+pytds":
-            # pytds driver SSL parameters
+            # pytds supports cafile, certfile, and keyfile as native connection params.
+            # certfile and keyfile were previously extracted by check_ssl_and_init but
+            # never applied here, making mutual TLS silently non-functional for pytds.
             if self.ca_file_path:
                 connection.connectionArguments.root["cafile"] = self.ca_file_path
+            if self.cert_file_path:
+                connection.connectionArguments.root["certfile"] = self.cert_file_path
+            if self.key_file_path:
+                connection.connectionArguments.root["keyfile"] = self.key_file_path
 
         return connection
 
@@ -468,9 +482,15 @@ def _(connection):
         Union[PostgresConnection, RedshiftConnection, GreenplumConnection],
         connection,
     )
+    # Previously only caCertificate was extracted, causing sslCertificate and sslKey
+    # to be silently dropped. All three are now passed so setup_ssl can forward
+    # sslcert and sslkey to psycopg2 for mutual TLS authentication.
+    ssl = connection.sslConfig
     if connection.sslMode:
         return SSLManager(
-            ca=connection.sslConfig.root.caCertificate if connection.sslConfig else None
+            ca=ssl.root.caCertificate if ssl else None,
+            cert=ssl.root.sslCertificate if ssl else None,
+            key=ssl.root.sslKey if ssl else None,
         )
     return None
 
