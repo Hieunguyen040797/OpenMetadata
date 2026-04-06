@@ -340,7 +340,8 @@ class StatusWarningHandler(logging.Handler):
         self._status = status
 
     def emit(self, record: logging.LogRecord) -> None:
-        if record.levelno < logging.WARNING:
+        # Only capture WARNING; ERROR/CRITICAL are already tracked as failures by Step.run()
+        if record.levelno != logging.WARNING:
             return
         if record.module in self._SKIP_MODULES:
             return

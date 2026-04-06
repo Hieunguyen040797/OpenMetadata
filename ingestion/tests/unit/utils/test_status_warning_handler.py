@@ -92,7 +92,7 @@ class TestStatusWarningHandler(TestCase):
 
 
 class TestStepHandlerAttachment(TestCase):
-    """Integration tests verifying the handler is wired into the Step lifecycle."""
+    """Integration tests verifying the handler is wired into the Step run() lifecycle."""
 
     def setUp(self):
         self._log = ingestion_logger()
@@ -102,21 +102,34 @@ class TestStepHandlerAttachment(TestCase):
     def tearDown(self):
         self._log.handlers = self._original_handlers
 
-    def test_logger_warning_populates_status(self):
-        ingestion_logger().warning(
-            "Unexpected exception processing column [bad_col]: Invalid name"
-        )
+    def test_warning_inside_run_scope_populates_status(self):
+        self.step._activate_handler()
+        try:
+            ingestion_logger().warning(
+                "Unexpected exception processing column [bad_col]: Invalid name"
+            )
+        finally:
+            self.step._deactivate_handler()
 
         assert len(self.step.status.warnings) == 1
         warning = self.step.status.warnings[0]
         assert "Unexpected exception processing column" in list(warning.values())[0]
 
+    def test_warning_outside_run_scope_does_not_populate_status(self):
+        ingestion_logger().warning("warning emitted before run() starts")
+
+        assert len(self.step.status.warnings) == 0
+
     def test_status_failed_does_not_increment_warning_count(self):
-        self.step.status.failed(
-            StackTraceError(
-                name="some_entity", error="something went wrong", stackTrace="tb"
+        self.step._activate_handler()
+        try:
+            self.step.status.failed(
+                StackTraceError(
+                    name="some_entity", error="something went wrong", stackTrace="tb"
+                )
             )
-        )
+        finally:
+            self.step._deactivate_handler()
 
         assert len(self.step.status.warnings) == 0
         assert len(self.step.status.failures) == 1
