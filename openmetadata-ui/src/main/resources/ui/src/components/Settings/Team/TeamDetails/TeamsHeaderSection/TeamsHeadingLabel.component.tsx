@@ -126,18 +126,15 @@ const TeamsHeadingLabel = ({
         <>
           <>
             {heading ? (
-              <Tooltip title={heading}>
-                <div className="tw:min-w-0 tw:overflow-hidden">
-                  <Typography
-                    as="h5"
-                    className="m-b-0 tw:truncate"
-                    data-testid="team-heading"
-                    size="text-md"
-                    weight="semibold">
-                    {heading}
-                  </Typography>
-                </div>
-              </Tooltip>
+              <Typography
+                as="h5"
+                className="m-b-0"
+                data-testid="team-heading"
+                ellipsis={{ tooltip: heading }}
+                size="text-md"
+                weight="semibold">
+                {heading}
+              </Typography>
             ) : (
               <Typography
                 className="m-b-0 text-grey-muted text-sm"
