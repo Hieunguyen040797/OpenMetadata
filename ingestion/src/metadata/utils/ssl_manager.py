@@ -286,15 +286,16 @@ class SSLManager:
         if not connection.connectionArguments:
             connection.connectionArguments = init_empty_connection_arguments()
 
-        # Add certificate paths if available (following MySQL pattern)
-        ssl_args = connection.connectionArguments.root.get("ssl", {})
+        # CustomHiveConnection consumes these as explicit top-level kwargs that are
+        # forwarded to puretransport.transport_factory via socket_kwargs (see
+        # custom_hive_connection.py:104-109). The nested MySQL-style ssl dict is
+        # not read by the Hive driver.
         if self.ca_file_path:
-            ssl_args["ssl_ca"] = self.ca_file_path
+            connection.connectionArguments.root["ssl_ca_certs"] = self.ca_file_path
         if self.cert_file_path:
-            ssl_args["ssl_cert"] = self.cert_file_path
+            connection.connectionArguments.root["ssl_certfile"] = self.cert_file_path
         if self.key_file_path:
-            ssl_args["ssl_key"] = self.key_file_path
-        connection.connectionArguments.root["ssl"] = ssl_args
+            connection.connectionArguments.root["ssl_keyfile"] = self.key_file_path
 
         return connection
 

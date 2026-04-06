@@ -740,6 +740,9 @@ class OpenlineageSource(PipelineServiceSource):
             # Close down consumer to commit final offsets.
             # @todo address this
             consumer.close()
+            ssl_manager = getattr(consumer, "_ssl_manager", None)
+            if ssl_manager:
+                ssl_manager.cleanup_temp_files()
 
     def _poll_kinesis(self, broker: KinesisBrokerConfig) -> Iterable[OpenLineageEvent]:
         """Poll events from Kinesis Data Stream."""

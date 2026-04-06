@@ -800,3 +800,145 @@ class PostgresSSLManagerTest(TestCase):
         self.assertIsNotNone(args.get("sslkey"))
 
         ssl_manager.cleanup_temp_files()
+
+
+class HiveSSLManagerTest(TestCase):
+    """
+    Tests that setup_ssl for HiveConnection produces the kwarg names
+    that CustomHiveConnection expects (ssl_certfile, ssl_keyfile, ssl_ca_certs).
+    """
+
+    def test_setup_ssl_sets_custom_hive_connection_kwargs(self):
+        """ssl_ca_certs / ssl_certfile / ssl_keyfile are set at the top level"""
+        from metadata.generated.schema.entity.services.connections.database.hiveConnection import (
+            HiveConnection,
+        )
+        from metadata.utils.ssl_manager import check_ssl_and_init
+
+        connection = HiveConnection(
+            hostPort="localhost:10000",
+            useSSL=True,
+            sslConfig={
+                "caCertificate": "caCertificateData",
+                "sslCertificate": "sslCertificateData",
+                "sslKey": "sslKeyData",
+            },
+        )
+
+        ssl_manager = check_ssl_and_init(connection)
+        updated_connection = ssl_manager.setup_ssl(connection)
+
+        args = updated_connection.connectionArguments.root
+        self.assertIsNotNone(args.get("ssl_ca_certs"))
+        self.assertIsNotNone(args.get("ssl_certfile"))
+        self.assertIsNotNone(args.get("ssl_keyfile"))
+        # Must not fall back to the old MySQL-style nested dict
+        self.assertNotIn("ssl", args)
+
+        ssl_manager.cleanup_temp_files()
+
+    def test_setup_ssl_ca_only(self):
+        """CA-only config sets ssl_ca_certs but not ssl_certfile or ssl_keyfile"""
+        from metadata.generated.schema.entity.services.connections.database.hiveConnection import (
+            HiveConnection,
+        )
+        from metadata.utils.ssl_manager import check_ssl_and_init
+
+        connection = HiveConnection(
+            hostPort="localhost:10000",
+            useSSL=True,
+            sslConfig={"caCertificate": "caCertificateData"},
+        )
+
+        ssl_manager = check_ssl_and_init(connection)
+        updated_connection = ssl_manager.setup_ssl(connection)
+
+        args = updated_connection.connectionArguments.root
+        self.assertIsNotNone(args.get("ssl_ca_certs"))
+        self.assertIsNone(args.get("ssl_certfile"))
+        self.assertIsNone(args.get("ssl_keyfile"))
+
+        ssl_manager.cleanup_temp_files()
+
+
+class OpenLineageKafkaSSLTest(TestCase):
+    """
+    Tests for OpenLineage Kafka SSL null-guard and temp file lifecycle.
+    """
+
+    def test_null_ssl_config_does_not_raise(self):
+        """SSL protocol with sslConfig=None must not raise AttributeError"""
+        from unittest.mock import MagicMock, patch
+
+        from metadata.generated.schema.entity.services.connections.pipeline.openLineageConnection import (
+            KafkaBrokerConfig,
+        )
+        from metadata.generated.schema.entity.services.connections.pipeline.openLineageConnection import (
+            SecurityProtocol as KafkaSecProtocol,
+        )
+        from metadata.ingestion.source.pipeline.openlineage.connection import (
+            _get_kafka_connection,
+        )
+
+        broker = KafkaBrokerConfig(
+            brokersUrl="localhost:9092",
+            topicName="test-topic",
+            consumerGroupName="test-group",
+            securityProtocol=KafkaSecProtocol.SSL,
+            sslConfig=None,
+        )
+
+        mock_consumer = MagicMock()
+        with patch(
+            "metadata.ingestion.source.pipeline.openlineage.connection.KafkaConsumer",
+            return_value=mock_consumer,
+        ):
+            consumer = _get_kafka_connection(broker)
+
+        self.assertIsNone(consumer._ssl_manager)
+
+    def test_ssl_config_sets_location_keys_and_attaches_manager(self):
+        """sslConfig present — ssl.*.location keys set and ssl_manager attached"""
+        from unittest.mock import MagicMock, patch
+
+        from metadata.generated.schema.entity.services.connections.pipeline.openLineageConnection import (
+            KafkaBrokerConfig,
+        )
+        from metadata.generated.schema.entity.services.connections.pipeline.openLineageConnection import (
+            SecurityProtocol as KafkaSecProtocol,
+        )
+        from metadata.ingestion.source.pipeline.openlineage.connection import (
+            _get_kafka_connection,
+        )
+
+        broker = KafkaBrokerConfig(
+            brokersUrl="localhost:9092",
+            topicName="test-topic",
+            consumerGroupName="test-group",
+            securityProtocol=KafkaSecProtocol.SSL,
+            sslConfig={
+                "caCertificate": "caCertificateData",
+                "sslCertificate": "sslCertificateData",
+                "sslKey": "sslKeyData",
+            },
+        )
+
+        mock_consumer = MagicMock()
+        captured_config = {}
+
+        def capture_config(cfg):
+            captured_config.update(cfg)
+            return mock_consumer
+
+        with patch(
+            "metadata.ingestion.source.pipeline.openlineage.connection.KafkaConsumer",
+            side_effect=capture_config,
+        ):
+            consumer = _get_kafka_connection(broker)
+
+        self.assertIn("ssl.ca.location", captured_config)
+        self.assertIn("ssl.certificate.location", captured_config)
+        self.assertIn("ssl.key.location", captured_config)
+        self.assertIsNotNone(mock_consumer._ssl_manager)
+
+        mock_consumer._ssl_manager.cleanup_temp_files()
